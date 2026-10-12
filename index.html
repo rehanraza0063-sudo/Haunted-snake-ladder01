@@ -1,0 +1,570 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Snakes & Ladders - Haunted Edition</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:radial-gradient(circle at 50% 20%,#1d0a10,#050203 70%);color:#e8dcd0;font-family:Georgia,'Times New Roman',serif;min-height:100vh}
+h1{margin:14px 0 2px;text-align:center;letter-spacing:4px;color:#c1121f;text-shadow:0 0 12px #7a0000,0 0 30px #3a0000;font-size:clamp(22px,4vw,38px)}
+.sub{text-align:center;color:#8a7a70;font-style:italic;margin-bottom:10px}
+.wrap{display:flex;flex-wrap:wrap;gap:18px;justify-content:center;align-items:flex-start;padding:8px 12px 24px}
+canvas{width:min(94vw,640px);height:auto;border:2px solid #5c0a14;box-shadow:0 0 25px #4a0000,inset 0 0 30px #000;border-radius:6px;background:#000}
+.panel{width:min(94vw,330px);background:#12080b;border:1px solid #4a1018;border-radius:8px;padding:14px;box-shadow:0 0 18px #2a0000}
+.plist{display:flex;flex-direction:column;gap:6px;margin-bottom:12px}
+.pl{display:flex;align-items:center;gap:10px;padding:7px 9px;border-radius:6px;border:1px solid #2a1014;background:#1a0d10;transition:.2s}
+.pl.act{border-color:#c1121f;box-shadow:0 0 10px #7a0000;background:#2a1015}
+.dot{width:16px;height:16px;border-radius:50%;border:2px solid #000;flex:none}
+.pl .nm{flex:1}.pl .sq{color:#b8a898;font-size:14px}
+.dicebox{display:flex;align-items:center;gap:14px;margin:6px 0 10px}
+#dice{font-size:78px;line-height:1;width:96px;text-align:center;color:#f1e6da;text-shadow:0 0 12px #7a0000;user-select:none}
+#dice.roll{animation:shake .12s infinite}
+@keyframes shake{0%{transform:rotate(-12deg)}50%{transform:rotate(12deg) scale(1.08)}100%{transform:rotate(-12deg)}}
+button{font-family:inherit;cursor:pointer}
+#rollBtn,#startBtn,.big{background:linear-gradient(#a4161a,#5c0a10);color:#fff;border:1px solid #e5383b;border-radius:6px;padding:11px 18px;font-size:17px;letter-spacing:1px;box-shadow:0 0 12px #5c0a14}
+#rollBtn:disabled{opacity:.35;cursor:not-allowed;box-shadow:none}
+#rollBtn:not(:disabled):hover,#startBtn:hover,.big:hover{filter:brightness(1.25)}
+#msg{min-height:44px;color:#f5d0a9;margin:6px 0}
+#log{font-size:13px;color:#9c8c80;max-height:120px;overflow:hidden;border-top:1px solid #2a1014;padding-top:8px}
+#log div{margin:2px 0}#log div:first-child{color:#d8c8b8}
+.tools{display:flex;gap:8px;margin-top:10px}
+.tools button{flex:1;background:#1a0d10;color:#d8c8b8;border:1px solid #4a1018;border-radius:6px;padding:7px;font-size:13px}
+.overlay{position:fixed;inset:0;background:rgba(3,0,1,.88);display:flex;align-items:center;justify-content:center;z-index:10;padding:12px}
+.overlay.hide{display:none}
+.card{background:#12080b;border:2px solid #7a0000;border-radius:10px;padding:24px 28px;max-width:440px;width:100%;text-align:center;box-shadow:0 0 40px #5c0000}
+.card h2{margin:0 0 4px;color:#c1121f;letter-spacing:3px}
+.card .lbl{margin:16px 0 6px;color:#b8a898;font-size:14px;text-transform:uppercase;letter-spacing:2px}
+.row{display:flex;gap:8px;justify-content:center;flex-wrap:wrap}
+.opt{background:#1a0d10;color:#d8c8b8;border:1px solid #4a1018;border-radius:6px;padding:10px 16px;font-size:15px}
+.opt.sel{border-color:#e5383b;background:#4a0d14;color:#fff;box-shadow:0 0 10px #7a0000}
+.hint{color:#8a7a70;font-size:13px;min-height:36px;margin:10px 0}
+</style>
+</head>
+<body>
+<h1>SNAKES &amp; LADDERS</h1>
+<div class="sub">Haunted Edition &mdash; reach square 100 if the serpents let you</div>
+
+<div class="wrap">
+  <canvas id="board" width="640" height="688"></canvas>
+  <div class="panel">
+    <div class="plist" id="plist"></div>
+    <div class="dicebox">
+      <div id="dice">&#9856;</div>
+      <button id="rollBtn" disabled>Roll Dice</button>
+    </div>
+    <div id="msg">Press "Enter the Dark" to begin.</div>
+    <div id="log"></div>
+    <div class="tools">
+      <button id="musicBtn">Music: ON</button>
+      <button id="sfxBtn">Sounds: ON</button>
+      <button id="menuBtn">Menu</button>
+    </div>
+  </div>
+</div>
+
+<div id="menu" class="overlay">
+  <div class="card">
+    <h2>SNAKES &amp; LADDERS</h2>
+    <div style="color:#8a7a70;font-style:italic">Haunted Edition</div>
+    <div class="lbl">Game mode</div>
+    <div class="row">
+      <button class="opt sel" data-mode="cpu">With Computer</button>
+      <button class="opt" data-mode="local">Without Computer</button>
+    </div>
+    <div class="lbl">Players (max 4)</div>
+    <div class="row">
+      <button class="opt sel" data-n="2">2</button>
+      <button class="opt" data-n="3">3</button>
+      <button class="opt" data-n="4">4</button>
+    </div>
+    <div class="hint" id="hint"></div>
+    <button id="startBtn">Enter the Dark</button>
+    <div class="hint" style="margin-top:12px">Turn your sound on. Rolling a 6 gives an extra turn. You need an exact roll to land on 100.</div>
+  </div>
+</div>
+
+<div id="winner" class="overlay hide">
+  <div class="card">
+    <h2 id="winTitle">WINNER</h2>
+    <div id="winText" style="margin:12px 0 20px;font-size:18px"></div>
+    <div class="row">
+      <button class="big" id="againBtn">Play Again</button>
+      <button class="opt" id="toMenuBtn">Main Menu</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ============ BOARD DATA ============ */
+const N = 10, CS = 64, W = N * CS, H = W + 48;
+const snakes  = {16:6, 47:26, 49:11, 56:53, 62:19, 64:60, 87:24, 93:73, 95:75, 98:78};
+const ladders = {2:38, 7:14, 9:31, 21:42, 28:84, 36:44, 51:67, 71:91, 80:100};
+const COLORS = ['#ff4d4d', '#4dd2ff', '#7dff4d', '#ffd24d'];
+const OFFS = [[-11,-11],[11,-11],[-11,11],[11,11]];
+const SNAKE_COLS = [['#2e8b3a','#b6f0b6'],['#8b2e8b','#e8a8f0'],['#b8741a','#f6d890'],['#2e6f8b','#a8e0f0'],['#9b2a2a','#f0b0b0']];
+
+function center(n){
+  if (n === 0) return [40, W + 24];
+  const i = n - 1, r = Math.floor(i / 10);
+  const c = (r % 2 === 0) ? i % 10 : 9 - (i % 10);
+  return [c * CS + CS / 2, (9 - r) * CS + CS / 2];
+}
+
+/* ============ STATIC BOARD RENDER ============ */
+function drawLadder(g, a, b){
+  const [x1,y1] = center(a), [x2,y2] = center(b);
+  const dx = x2-x1, dy = y2-y1, len = Math.hypot(dx,dy);
+  const ux = dx/len, uy = dy/len, px = -uy, py = ux, w = 9;
+  g.lineCap = 'round';
+  [[2,'rgba(0,0,0,.55)',7],[0,'#8c5a2b',4]].forEach(([o,col,lw])=>{
+    g.strokeStyle = col; g.lineWidth = lw;
+    [-1,1].forEach(s=>{
+      g.beginPath();
+      g.moveTo(x1+px*w*s+o, y1+py*w*s+o);
+      g.lineTo(x2+px*w*s+o, y2+py*w*s+o);
+      g.stroke();
+    });
+  });
+  for (let d = 14; d < len - 6; d += 20){
+    const cx = x1 + ux*d, cy = y1 + uy*d;
+    g.strokeStyle = 'rgba(0,0,0,.5)'; g.lineWidth = 4;
+    g.beginPath(); g.moveTo(cx-px*w+2, cy-py*w+2); g.lineTo(cx+px*w+2, cy+py*w+2); g.stroke();
+    g.strokeStyle = '#c9a068'; g.lineWidth = 3;
+    g.beginPath(); g.moveTo(cx-px*w, cy-py*w); g.lineTo(cx+px*w, cy+py*w); g.stroke();
+  }
+}
+
+function drawSnake(g, head, tail, ci){
+  const [x1,y1] = center(head), [x2,y2] = center(tail);
+  const dx = x2-x1, dy = y2-y1, len = Math.hypot(dx,dy);
+  const ux = dx/len, uy = dy/len, px = -uy, py = ux;
+  const k = Math.max(2, Math.round(len / 75));
+  const amp = Math.min(22, len / 6);
+  const S = 70, pts = [];
+  for (let i = 0; i <= S; i++){
+    const t = i / S, off = Math.sin(t * Math.PI * k) * amp;
+    pts.push([x1 + dx*t + px*off, y1 + dy*t + py*off, t]);
+  }
+  const col = SNAKE_COLS[ci % SNAKE_COLS.length];
+  g.lineCap = 'round';
+  for (let pass = 0; pass < 2; pass++){
+    for (let i = 1; i <= S; i++){
+      const t = pts[i][2], wd = 14 - 10 * t;
+      g.beginPath();
+      g.moveTo(pts[i-1][0] + (pass ? 0 : 2), pts[i-1][1] + (pass ? 0 : 2));
+      g.lineTo(pts[i][0] + (pass ? 0 : 2), pts[i][1] + (pass ? 0 : 2));
+      g.lineWidth = pass ? wd : wd + 4;
+      g.strokeStyle = pass ? ((i % 8 < 3) ? col[1] : col[0]) : 'rgba(0,0,0,.6)';
+      g.stroke();
+    }
+  }
+  // head
+  const hx = pts[0][0], hy = pts[0][1];
+  let fx = pts[0][0] - pts[2][0], fy = pts[0][1] - pts[2][1];
+  const fl = Math.hypot(fx, fy); fx /= fl; fy /= fl;
+  const sx = -fy, sy = fx;
+  g.strokeStyle = '#d00000'; g.lineWidth = 2;
+  g.beginPath(); g.moveTo(hx + fx*8, hy + fy*8); g.lineTo(hx + fx*18, hy + fy*18);
+  g.lineTo(hx + fx*22 + sx*4, hy + fy*22 + sy*4);
+  g.moveTo(hx + fx*18, hy + fy*18); g.lineTo(hx + fx*22 - sx*4, hy + fy*22 - sy*4); g.stroke();
+  g.fillStyle = col[0]; g.strokeStyle = '#000'; g.lineWidth = 2;
+  g.beginPath(); g.ellipse(hx, hy, 12, 9, Math.atan2(fy, fx), 0, Math.PI*2); g.fill(); g.stroke();
+  [-1, 1].forEach(s=>{
+    const ex = hx + fx*3 + sx*5*s, ey = hy + fy*3 + sy*5*s;
+    g.fillStyle = '#ff1a1a'; g.shadowColor = '#ff0000'; g.shadowBlur = 8;
+    g.beginPath(); g.arc(ex, ey, 2.6, 0, 7); g.fill(); g.shadowBlur = 0;
+    g.fillStyle = '#000'; g.beginPath(); g.arc(ex, ey, 1, 0, 7); g.fill();
+  });
+}
+
+function buildBoard(){
+  const c = document.createElement('canvas'); c.width = W; c.height = H;
+  const g = c.getContext('2d');
+  g.fillStyle = '#070304'; g.fillRect(0, 0, W, H);
+  for (let n = 1; n <= 100; n++){
+    const [x,y] = center(n), i = n - 1;
+    g.fillStyle = ((Math.floor(i/10) + (i%10)) % 2) ? '#1b1215' : '#2a181c';
+    g.fillRect(x - CS/2, y - CS/2, CS, CS);
+    g.strokeStyle = '#3a1d22'; g.lineWidth = 1;
+    g.strokeRect(x - CS/2 + .5, y - CS/2 + .5, CS - 1, CS - 1);
+    g.fillStyle = 'rgba(225,205,185,.55)'; g.font = 'bold 13px Georgia';
+    g.textAlign = 'left'; g.textBaseline = 'alphabetic';
+    g.fillText(n === 100 ? '100 \u2620' : n, x - CS/2 + 5, y - CS/2 + 16);
+  }
+  g.fillStyle = '#7a0000'; g.font = 'bold 14px Georgia'; g.textAlign = 'left';
+  g.fillText('START', 80, W + 29);
+  g.fillStyle = '#1a0d10'; g.fillRect(0, W, W, 2);
+  Object.entries(ladders).forEach(([a,b]) => drawLadder(g, +a, +b));
+  Object.entries(snakes).forEach(([a,b], i) => drawSnake(g, +a, +b, i));
+  return c;
+}
+
+/* ============ AUDIO ============ */
+let AC = null, master, musicG, sfxG, noiseBuf, musicOn = true, sfxOn = true, musicStarted = false;
+
+function initAudio(){
+  if (AC) { if (AC.state === 'suspended') AC.resume(); return; }
+  AC = new (window.AudioContext || window.webkitAudioContext)();
+  const comp = AC.createDynamicsCompressor();
+  comp.connect(AC.destination);
+  master = AC.createGain(); master.gain.value = .9; master.connect(comp);
+  musicG = AC.createGain(); musicG.gain.value = musicOn ? .5 : 0; musicG.connect(master);
+  sfxG = AC.createGain(); sfxG.gain.value = sfxOn ? 1 : 0; sfxG.connect(master);
+  noiseBuf = AC.createBuffer(1, AC.sampleRate * 3, AC.sampleRate);
+  const d = noiseBuf.getChannelData(0);
+  for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+}
+
+function startMusic(){
+  if (!AC) return;
+  if (AC.state === 'suspended') AC.resume();
+  if (musicStarted) return;
+  musicStarted = true;
+  // dark drone
+  const lp = AC.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 220; lp.Q.value = 4; lp.connect(musicG);
+  [[55,'sawtooth',.18],[55.7,'sawtooth',.16],[82.4,'triangle',.1],[27.5,'sine',.3],[58.3,'triangle',.06]].forEach(([f,type,v])=>{
+    const o = AC.createOscillator(); o.type = type; o.frequency.value = f;
+    const g = AC.createGain(); g.gain.value = v;
+    o.connect(g); g.connect(lp); o.start();
+  });
+  const lfo = AC.createOscillator(); lfo.frequency.value = .07;
+  const lg = AC.createGain(); lg.gain.value = 120; lfo.connect(lg); lg.connect(lp.frequency); lfo.start();
+  // howling wind
+  const n = AC.createBufferSource(); n.buffer = noiseBuf; n.loop = true;
+  const bp = AC.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = 500; bp.Q.value = .8;
+  const ng = AC.createGain(); ng.gain.value = .12;
+  const l2 = AC.createOscillator(); l2.frequency.value = .11;
+  const l2g = AC.createGain(); l2g.gain.value = 300; l2.connect(l2g); l2g.connect(bp.frequency); l2.start();
+  n.connect(bp); bp.connect(ng); ng.connect(musicG); n.start();
+  scheduleHorror();
+}
+
+function thump(t, v){
+  const o = AC.createOscillator(); o.type = 'sine';
+  o.frequency.setValueAtTime(75, t); o.frequency.exponentialRampToValueAtTime(38, t + .18);
+  const g = AC.createGain(); g.gain.setValueAtTime(0.0001, t);
+  g.gain.linearRampToValueAtTime(v, t + .015); g.gain.exponentialRampToValueAtTime(.0001, t + .25);
+  o.connect(g); g.connect(musicG); o.start(t); o.stop(t + .3);
+}
+function heartbeat(){
+  const t = AC.currentTime;
+  for (let i = 0; i < 7; i++){ thump(t + i * .95, .9); thump(t + i * .95 + .28, .6); }
+}
+function screech(){
+  const t = AC.currentTime, o = AC.createOscillator(); o.type = 'sine';
+  o.frequency.setValueAtTime(2200, t); o.frequency.exponentialRampToValueAtTime(1500, t + 1.6);
+  const v = AC.createOscillator(); v.frequency.value = 7;
+  const vg = AC.createGain(); vg.gain.value = 60; v.connect(vg); vg.connect(o.frequency);
+  const g = AC.createGain(); g.gain.setValueAtTime(0.0001, t);
+  g.gain.linearRampToValueAtTime(.06, t + .5); g.gain.exponentialRampToValueAtTime(.0001, t + 1.7);
+  o.connect(g); g.connect(musicG); o.start(t); v.start(t); o.stop(t + 1.8); v.stop(t + 1.8);
+}
+function dissonant(){
+  const t = AC.currentTime, base = [196, 220, 233, 262][Math.floor(Math.random() * 4)];
+  [base, base * 1.414, base * 1.06].forEach(f=>{
+    const o = AC.createOscillator(); o.type = 'sine'; o.frequency.value = f;
+    const g = AC.createGain(); g.gain.setValueAtTime(0.0001, t);
+    g.gain.linearRampToValueAtTime(.07, t + 1.8); g.gain.exponentialRampToValueAtTime(.0001, t + 4.2);
+    o.connect(g); g.connect(musicG); o.start(t); o.stop(t + 4.3);
+  });
+}
+function creak(){
+  const t = AC.currentTime, o = AC.createOscillator(); o.type = 'sawtooth';
+  o.frequency.setValueAtTime(70, t);
+  for (let i = 1; i < 8; i++) o.frequency.linearRampToValueAtTime(60 + Math.random() * 90, t + i * .15);
+  const f = AC.createBiquadFilter(); f.type = 'bandpass'; f.frequency.value = 700; f.Q.value = 8;
+  const g = AC.createGain(); g.gain.setValueAtTime(0.0001, t);
+  g.gain.linearRampToValueAtTime(.35, t + .2); g.gain.exponentialRampToValueAtTime(.0001, t + 1.2);
+  o.connect(f); f.connect(g); g.connect(musicG); o.start(t); o.stop(t + 1.3);
+}
+function scheduleHorror(){
+  setTimeout(()=>{
+    if (AC && AC.state === 'running' && musicOn){
+      const r = Math.random();
+      if (r < .3) heartbeat(); else if (r < .55) screech(); else if (r < .8) dissonant(); else creak();
+    }
+    scheduleHorror();
+  }, 2500 + Math.random() * 5000);
+}
+
+/* ----- sound effects ----- */
+function noiseBurst(t, dur, type, freq, q, vol, fEnd){
+  const n = AC.createBufferSource(); n.buffer = noiseBuf;
+  const f = AC.createBiquadFilter(); f.type = type; f.frequency.setValueAtTime(freq, t);
+  if (fEnd) f.frequency.linearRampToValueAtTime(fEnd, t + dur);
+  f.Q.value = q;
+  const g = AC.createGain(); g.gain.setValueAtTime(0.0001, t);
+  g.gain.linearRampToValueAtTime(vol, t + Math.min(.08, dur / 3));
+  g.gain.setValueAtTime(vol, t + dur * .7);
+  g.gain.exponentialRampToValueAtTime(.0001, t + dur);
+  n.connect(f); f.connect(g); g.connect(sfxG); n.start(t, Math.random()); n.stop(t + dur + .02);
+}
+function vowel(t, dur, f0a, f0b, f1a, f1b, f2a, f2b, vol){
+  const o = AC.createOscillator(); o.type = 'sawtooth';
+  o.frequency.setValueAtTime(f0a, t); o.frequency.linearRampToValueAtTime(f0b, t + dur);
+  const g = AC.createGain(); g.gain.setValueAtTime(0.0001, t);
+  g.gain.linearRampToValueAtTime(vol, t + .04);
+  g.gain.setValueAtTime(vol, t + Math.max(.05, dur - .08));
+  g.gain.linearRampToValueAtTime(0.0001, t + dur);
+  [[f1a, f1b, 1], [f2a, f2b, .6]].forEach(([a, b, m])=>{
+    const f = AC.createBiquadFilter(); f.type = 'bandpass'; f.Q.value = 6;
+    f.frequency.setValueAtTime(a, t); f.frequency.linearRampToValueAtTime(b, t + dur);
+    const fg = AC.createGain(); fg.gain.value = m;
+    o.connect(f); f.connect(fg); fg.connect(g);
+  });
+  g.connect(sfxG); o.start(t); o.stop(t + dur + .05);
+}
+function tone(t, freq, dur, type, vol){
+  const o = AC.createOscillator(); o.type = type; o.frequency.setValueAtTime(freq, t);
+  const g = AC.createGain(); g.gain.setValueAtTime(0.0001, t);
+  g.gain.linearRampToValueAtTime(vol, t + .01); g.gain.exponentialRampToValueAtTime(.0001, t + dur);
+  o.connect(g); g.connect(sfxG); o.start(t); o.stop(t + dur + .02);
+}
+
+// "saaaaanppppp"
+function sfxSnake(){
+  if (!AC) return; const t = AC.currentTime;
+  noiseBurst(t, .35, 'bandpass', 6500, 2, 1.1, 4800);                  // "s"
+  vowel(t + .25, .7, 150, 105, 750, 650, 1150, 1000, 2.4);             // "aaaa"
+  noiseBurst(t + .25, .7, 'bandpass', 4200, 1, .3);                     // hissing tail
+  vowel(t + .93, .15, 110, 100, 260, 260, 1000, 1000, 2.2);            // "n"
+  const k = AC.createOscillator(); k.type = 'sine';                     // "p" pop
+  k.frequency.setValueAtTime(300, t + 1.1); k.frequency.exponentialRampToValueAtTime(60, t + 1.25);
+  const kg = AC.createGain(); kg.gain.setValueAtTime(.9, t + 1.1); kg.gain.exponentialRampToValueAtTime(.0001, t + 1.3);
+  k.connect(kg); kg.connect(sfxG); k.start(t + 1.1); k.stop(t + 1.35);
+  noiseBurst(t + 1.1, .07, 'highpass', 1800, .7, 1.4);
+  tone(t + .3, 180, 1.0, 'sawtooth', .06);
+}
+// "yehh!"
+function sfxLadder(){
+  if (!AC) return; const t = AC.currentTime;
+  vowel(t, .13, 230, 270, 300, 560, 2400, 1950, 2.6);                  // "ye"
+  vowel(t + .12, .42, 270, 330, 620, 680, 1850, 1800, 2.6);            // "hhh"
+  [784, 988, 1319, 1568].forEach((f, i)=> tone(t + .1 + i * .08, f, .3, 'triangle', .18));
+}
+function sfxStep(){ if (!AC) return; const t = AC.currentTime; tone(t, 520 + Math.random() * 60, .07, 'square', .06); }
+function sfxTick(){ if (!AC) return; noiseBurst(AC.currentTime, .04, 'bandpass', 2500, 3, .5); }
+function sfxWin(){
+  if (!AC) return; const t = AC.currentTime;
+  [262, 330, 392, 523, 659, 784, 1047].forEach((f, i)=> tone(t + i * .12, f, .6, 'triangle', .22));
+  vowel(t + .9, .6, 260, 330, 620, 680, 1850, 1800, 2.6);
+}
+
+/* ============ GAME STATE ============ */
+const canvas = document.getElementById('board'), ctx = canvas.getContext('2d');
+const boardImg = buildBoard();
+const $ = id => document.getElementById(id);
+let mode = 'cpu', count = 2, players = [], turn = 0, busy = false, running = false, gameOver = false;
+let fx = null, flickerUntil = 0;
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+function mkPlayer(i){
+  const [x, y] = center(0);
+  return { name: mode === 'cpu' ? (i === 0 ? 'You' : 'CPU ' + i) : 'Player ' + (i + 1),
+           color: COLORS[i], cpu: mode === 'cpu' && i > 0, pos: 0, vx: x, vy: y, h: 0 };
+}
+
+function log(s){
+  const d = document.createElement('div'); d.textContent = s;
+  const L = $('log'); L.insertBefore(d, L.firstChild);
+  while (L.children.length > 6) L.removeChild(L.lastChild);
+}
+function msg(s){ $('msg').textContent = s; }
+
+function updatePanel(){
+  $('plist').innerHTML = '';
+  players.forEach((p, i)=>{
+    const d = document.createElement('div');
+    d.className = 'pl' + (i === turn && !gameOver ? ' act' : '');
+    d.innerHTML = '<span class="dot" style="background:' + p.color + '"></span><span class="nm">' + p.name +
+      (p.cpu ? ' (CPU)' : '') + '</span><span class="sq">' + (p.pos === 0 ? 'Start' : 'Square ' + p.pos) + '</span>';
+    $('plist').appendChild(d);
+  });
+}
+
+function animateTo(p, tx, ty, dur, hop){
+  return new Promise(res=>{
+    const sx = p.vx, sy = p.vy, t0 = performance.now();
+    (function f(now){
+      const t = Math.min(1, (now - t0) / dur);
+      const e = hop ? t : t * t * (3 - 2 * t);
+      p.vx = sx + (tx - sx) * e; p.vy = sy + (ty - sy) * e;
+      p.h = hop ? Math.sin(t * Math.PI) * 10 : 0;
+      if (t < 1) requestAnimationFrame(f); else { p.h = 0; res(); }
+    })(t0);
+  });
+}
+
+async function animateDice(v){
+  const faces = '\u2680\u2681\u2682\u2683\u2684\u2685', d = $('dice');
+  d.classList.add('roll');
+  for (let i = 0; i < 10; i++){ d.textContent = faces[Math.floor(Math.random() * 6)]; sfxTick(); await sleep(70); }
+  d.classList.remove('roll'); d.textContent = faces[v - 1];
+}
+
+function beginTurn(){
+  if (gameOver) return;
+  updatePanel();
+  const p = players[turn];
+  if (p.cpu){
+    busy = true; $('rollBtn').disabled = true;
+    msg(p.name + ' is thinking...');
+    setTimeout(doRoll, 1000);
+  } else {
+    busy = false; $('rollBtn').disabled = false;
+    msg(p.name + ', roll the dice.');
+  }
+}
+
+async function movePlayer(p, v){
+  if (p.pos + v > 100){ log(p.name + ' needs an exact roll to reach 100'); msg('Too high! Exact roll needed.'); await sleep(700); return false; }
+  for (let i = 0; i < v; i++){
+    p.pos++; sfxStep();
+    const [x, y] = center(p.pos);
+    await animateTo(p, x, y, 170, true);
+  }
+  updatePanel();
+  await sleep(250);
+  if (snakes[p.pos]){
+    const to = snakes[p.pos];
+    log(p.name + ' was bitten by a snake! ' + p.pos + ' \u2192 ' + to);
+    msg('SSSSS... a snake bites ' + p.name + '!');
+    fx = { color: '255,0,0', t0: performance.now() };
+    sfxSnake();
+    p.pos = to; const [x, y] = center(to);
+    await animateTo(p, x, y, 1100, false);
+    await sleep(300);
+  } else if (ladders[p.pos]){
+    const to = ladders[p.pos];
+    log(p.name + ' climbed a ladder! ' + p.pos + ' \u2192 ' + to);
+    msg('Yeh! ' + p.name + ' climbs a ladder!');
+    fx = { color: '255,210,80', t0: performance.now() };
+    sfxLadder();
+    p.pos = to; const [x, y] = center(to);
+    await animateTo(p, x, y, 900, false);
+    await sleep(300);
+  }
+  updatePanel();
+  return true;
+}
+
+async function doRoll(){
+  busy = true; $('rollBtn').disabled = true;
+  const p = players[turn];
+  const v = 1 + Math.floor(Math.random() * 6);
+  await animateDice(v);
+  log(p.name + ' rolled a ' + v);
+  const moved = await movePlayer(p, v);
+  if (p.pos === 100){ return win(p); }
+  if (v === 6 && moved){
+    log(p.name + ' rolled a 6 - extra turn!');
+    msg(p.name + ' gets another turn!');
+    await sleep(600);
+  } else {
+    turn = (turn + 1) % players.length;
+  }
+  beginTurn();
+}
+
+function win(p){
+  gameOver = true; running = false; updatePanel();
+  sfxWin();
+  $('winTitle').textContent = p.cpu ? 'THE DARKNESS WINS' : 'YOU ESCAPED!';
+  $('winTitle').style.color = p.color;
+  $('winText').textContent = p.name + (p.name === 'You' ? ' reached square 100!' : ' reached square 100!');
+  msg(p.name + ' wins!');
+  setTimeout(()=> $('winner').classList.remove('hide'), 900);
+}
+
+function startGame(){
+  initAudio(); startMusic();
+  players = []; for (let i = 0; i < count; i++) players.push(mkPlayer(i));
+  turn = 0; gameOver = false; running = true; busy = false;
+  $('log').innerHTML = ''; $('dice').textContent = '\u2680';
+  $('menu').classList.add('hide'); $('winner').classList.add('hide');
+  log('The game begins... ' + players.length + ' players, ' + (mode === 'cpu' ? 'vs computer' : 'local multiplayer'));
+  beginTurn();
+}
+
+/* ============ RENDER LOOP ============ */
+function drawToken(p, i, now){
+  const x = p.vx + OFFS[i][0], y = p.vy + OFFS[i][1] - p.h;
+  ctx.fillStyle = 'rgba(0,0,0,.5)';
+  ctx.beginPath(); ctx.ellipse(p.vx + OFFS[i][0] + 2, p.vy + OFFS[i][1] + 9, 10, 4, 0, 0, 7); ctx.fill();
+  if (i === turn && running){
+    ctx.strokeStyle = p.color; ctx.globalAlpha = .5 + .4 * Math.sin(now / 200); ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.arc(x, y, 17, 0, 7); ctx.stroke(); ctx.globalAlpha = 1;
+  }
+  const gr = ctx.createRadialGradient(x - 3, y - 4, 2, x, y, 13);
+  gr.addColorStop(0, '#fff'); gr.addColorStop(.35, p.color); gr.addColorStop(1, '#222');
+  ctx.fillStyle = gr; ctx.strokeStyle = '#000'; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.arc(x, y, 12, 0, 7); ctx.fill(); ctx.stroke();
+  ctx.fillStyle = '#000'; ctx.font = 'bold 12px Georgia'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText(i + 1, x, y + 1);
+}
+
+function frame(now){
+  ctx.clearRect(0, 0, W, H);
+  ctx.drawImage(boardImg, 0, 0);
+  players.forEach((p, i)=>{ if (i !== turn) drawToken(p, i, now); });
+  if (players[turn]) drawToken(players[turn], turn, now);
+  // drifting fog
+  [[0, 3500, 5000], [2, 4200, 3300]].forEach(([ph, sx, sy])=>{
+    const fx2 = W / 2 + Math.sin(now / sx + ph) * W * .35, fy2 = W / 2 + Math.cos(now / sy + ph) * W * .3;
+    const g = ctx.createRadialGradient(fx2, fy2, 10, fx2, fy2, 220);
+    g.addColorStop(0, 'rgba(150,170,180,.09)'); g.addColorStop(1, 'rgba(150,170,180,0)');
+    ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+  });
+  // vignette + flicker
+  if (Math.random() < .004) flickerUntil = now + 90;
+  const va = (now < flickerUntil) ? .35 : .55 + .08 * Math.sin(now / 130) * Math.sin(now / 370);
+  const vg = ctx.createRadialGradient(W / 2, W / 2, W * .3, W / 2, W / 2, W * .78);
+  vg.addColorStop(0, 'rgba(0,0,0,0)'); vg.addColorStop(1, 'rgba(0,0,0,' + va + ')');
+  ctx.fillStyle = vg; ctx.fillRect(0, 0, W, H);
+  if (now < flickerUntil){ ctx.fillStyle = 'rgba(0,0,0,.35)'; ctx.fillRect(0, 0, W, H); }
+  // event flash
+  if (fx){
+    const a = 1 - (now - fx.t0) / 700;
+    if (a > 0){ ctx.fillStyle = 'rgba(' + fx.color + ',' + (a * .35) + ')'; ctx.fillRect(0, 0, W, H); } else fx = null;
+  }
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+
+/* ============ UI WIRING ============ */
+function hint(){
+  $('hint').textContent = mode === 'cpu'
+    ? 'You are Player 1 (red). The other ' + (count - 1) + ' player(s) are computer opponents.'
+    : 'All ' + count + ' players are human. Take turns on this device.';
+}
+document.querySelectorAll('[data-mode]').forEach(b => b.onclick = ()=>{
+  mode = b.dataset.mode;
+  document.querySelectorAll('[data-mode]').forEach(x => x.classList.toggle('sel', x === b)); hint();
+});
+document.querySelectorAll('[data-n]').forEach(b => b.onclick = ()=>{
+  count = +b.dataset.n;
+  document.querySelectorAll('[data-n]').forEach(x => x.classList.toggle('sel', x === b)); hint();
+});
+hint();
+$('startBtn').onclick = startGame;
+$('againBtn').onclick = startGame;
+$('toMenuBtn').onclick = ()=>{ $('winner').classList.add('hide'); $('menu').classList.remove('hide'); };
+$('menuBtn').onclick = ()=>{ if (!busy || gameOver || !running) { running = false; $('menu').classList.remove('hide'); } else msg('Wait for the current move to finish.'); };
+$('rollBtn').onclick = ()=>{ if (running && !busy && !players[turn].cpu) doRoll(); };
+document.addEventListener('keydown', e=>{
+  if ((e.code === 'Space' || e.code === 'Enter') && running && !busy && players[turn] && !players[turn].cpu && $('menu').classList.contains('hide')){
+    e.preventDefault(); doRoll();
+  }
+});
+$('musicBtn').onclick = ()=>{
+  musicOn = !musicOn; $('musicBtn').textContent = 'Music: ' + (musicOn ? 'ON' : 'OFF');
+  if (musicG) musicG.gain.setTargetAtTime(musicOn ? .5 : 0, AC.currentTime, .1);
+};
+$('sfxBtn').onclick = ()=>{
+  sfxOn = !sfxOn; $('sfxBtn').textContent = 'Sounds: ' + (sfxOn ? 'ON' : 'OFF');
+  if (sfxG) sfxG.gain.setTargetAtTime(sfxOn ? 1 : 0, AC.currentTime, .05);
+};
+</script>
+</body>
+</html>
